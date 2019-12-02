@@ -1,0 +1,15 @@
+collections:
+  posts:
+    permalink: /day/:i_day
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+      author: "Simon Berger"
+
+theme: jekyll-theme-hacker
+
+show_downloads: false
