@@ -12,6 +12,7 @@ defaults:
       type: "posts"
     values:
       layout: "puzzle-post"
+      tags: ["advent-of-code", "rust"]
 
 theme: jekyll-theme-hacker
 show_downloads: false
