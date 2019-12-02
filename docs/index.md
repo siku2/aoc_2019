@@ -12,5 +12,5 @@ I'm just not that competitve to do that to myself. And hey, this way I can alway
 ## Days
 
 {% for post in site.posts %}
-    <a href="{{ post.url }}">{{ post.title }}</a>
+<a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
 {% endfor %}
