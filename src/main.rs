@@ -8,30 +8,36 @@ use clap::{App, Arg};
 
 use input::Input;
 
-mod puzzles;
 mod input;
+mod puzzles;
 
 fn get_app<'a, 'b>() -> App<'a, 'b> {
     App::new("Advent of Code 2019")
         .version("1.0")
         .author("Simon Berger")
-        .arg(Arg::with_name("day")
-            .short("d")
-            .long("day")
-            .value_name("PART")
-            .help("Set the day (Defaults to the current day)")
-            .takes_value(true))
-        .arg(Arg::with_name("part")
-            .short("p")
-            .long("part")
-            .value_name("PART")
-            .possible_values(&["first", "second", "both"])
-            .default_value("both")
-            .help("Which part of the day to solve"))
-        .arg(Arg::with_name("INPUT")
-            .help("Sets the input file to use")
-            .index(1)
-            .default_value("STDIN"))
+        .arg(
+            Arg::with_name("day")
+                .short("d")
+                .long("day")
+                .value_name("PART")
+                .help("Set the day (Defaults to the current day)")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("part")
+                .short("p")
+                .long("part")
+                .value_name("PART")
+                .possible_values(&["first", "second", "both"])
+                .default_value("both")
+                .help("Which part of the day to solve"),
+        )
+        .arg(
+            Arg::with_name("INPUT")
+                .help("Sets the input file to use")
+                .index(1)
+                .default_value("STDIN"),
+        )
 }
 
 fn get_day(value: Option<&str>) -> Result<u8, Box<dyn error::Error>> {
@@ -74,8 +80,14 @@ fn get_input(value: Option<&str>) -> io::Result<Input> {
             .and_then(|s| Ok(Input::new(s.as_str())));
     }
 
-    fs::File::open(fp)
-        .and_then(|mut file| Input::from_reader(&mut file))
+    fs::File::open(fp).and_then(|mut file| Input::from_reader(&mut file))
+}
+
+fn get_output(result: Result<String, Box<dyn error::Error>>) -> String {
+    match result {
+        Ok(sol) => sol,
+        Err(e) => e.to_string(),
+    }
 }
 
 fn solve_puzzle(day: u8, part: Part, input: Input) {
@@ -83,7 +95,7 @@ fn solve_puzzle(day: u8, part: Part, input: Input) {
 
     if part & FIRST_PART != 0 {
         if let Some(solution) = puzzles::run_puzzle(day, false, &input) {
-            println!("First: {}", solution);
+            println!("First: {}", get_output(solution));
         } else {
             println!("no first part");
         }
@@ -91,7 +103,7 @@ fn solve_puzzle(day: u8, part: Part, input: Input) {
 
     if part & SECOND_PART != 0 {
         if let Some(solution) = puzzles::run_puzzle(day, true, &input) {
-            println!("Second: {}", solution);
+            println!("Second: {}", get_output(solution));
         } else {
             println!("no second part");
         }
