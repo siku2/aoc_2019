@@ -6,16 +6,16 @@ fn fuel_for_mass(mass: usize) -> usize {
         return 0;
     }
 
-    return third - 2;
+    third - 2
 }
 
 fn total_fuel_for_mass(mass: usize) -> usize {
     let fuel = fuel_for_mass(mass);
-    if fuel <= 0 {
+    if fuel == 0 {
         return 0;
     }
 
-    return fuel + total_fuel_for_mass(fuel);
+    fuel + total_fuel_for_mass(fuel)
 }
 
 pub fn first(i: &Input) -> String {

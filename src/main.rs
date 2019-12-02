@@ -12,14 +12,14 @@ mod puzzles;
 mod input;
 
 fn get_app<'a, 'b>() -> App<'a, 'b> {
-    App::new("advent of code")
+    App::new("Advent of Code 2019")
         .version("1.0")
         .author("Simon Berger")
         .arg(Arg::with_name("day")
             .short("d")
             .long("day")
             .value_name("PART")
-            .help("set the puzzle day")
+            .help("Set the day (Defaults to the current day)")
             .takes_value(true))
         .arg(Arg::with_name("part")
             .short("p")
@@ -27,7 +27,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
             .value_name("PART")
             .possible_values(&["first", "second", "both"])
             .default_value("both")
-            .help("which part of the day to solve"))
+            .help("Which part of the day to solve"))
         .arg(Arg::with_name("INPUT")
             .help("Sets the input file to use")
             .index(1)
@@ -43,17 +43,18 @@ fn get_day(value: Option<&str>) -> Result<u8, Box<dyn error::Error>> {
         return Err("couldn't parse day value".into());
     }
 
+    // TODO use correct timezone
     let now = Utc::now().date();
     if now >= Utc.ymd(2019, 12, 1) && now <= Utc.ymd(2019, 12, 25) {
         return Ok(now.day() as u8);
     }
 
-    return Err("not in the required day range".into());
+    Err("not in the required day range".into())
 }
 
 type Part = u8;
 
-const FIRST_PART: Part = 2 << 0;
+const FIRST_PART: Part = 2;
 const SECOND_PART: Part = 2 << 1;
 
 fn get_part(value: Option<&str>) -> Part {
@@ -73,8 +74,8 @@ fn get_input(value: Option<&str>) -> io::Result<Input> {
             .and_then(|s| Ok(Input::new(s.as_str())));
     }
 
-    return fs::File::open(fp
-    ).and_then(|mut file| Input::from_reader(&mut file));
+    fs::File::open(fp)
+        .and_then(|mut file| Input::from_reader(&mut file))
 }
 
 fn solve_puzzle(day: u8, part: Part, input: Input) {
@@ -109,7 +110,7 @@ fn main() {
         }
     }
 
-    if day <= 0 || day >= 25 {
+    if day == 0 || day >= 25 {
         println!("day must be between 1 and 25 (both inclusive)");
         return;
     }
@@ -148,5 +149,5 @@ fn read_until_two_newlines(reader: impl io::BufRead) -> io::Result<String> {
         }
     }
 
-    return Ok(s);
+    Ok(s)
 }
