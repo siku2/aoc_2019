@@ -7,6 +7,10 @@ layout: default
 
 <p class="view">by {{ page.author | default: site.author }}</p>
 
+<hr>
+
+<a href="https://adventofcode.com/2019/day/{{ page.date | date: "%-d" }}">Read the puzzle's description on adventofcode.com</a>
+
 <br>
 
 {{ content }}
@@ -17,10 +21,14 @@ layout: default
 
 <hr>
 
+<a href="{{ '/' | relative_url }}">Overview</a>
+
+<br>
+
 {% if page.previous %}
-    <a href="{{ site.baseurl }}{{ page.previous.url }}">Previous day</a>
+    <a href="{{ page.previous.url | relative_url }}">Previous day</a>
 {% endif %}
 
 {% if page.next %}
-    <a href="{{ site.baseurl }}{{ page.next.url }}">Next day</a>
+    <a href="{{ page.next.url | relative_url }}">Next day</a>
 {% endif %}
