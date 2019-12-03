@@ -22,7 +22,10 @@ impl Input {
         self.raw.lines().filter(|s| !s.is_empty())
     }
 
-    pub fn map_lines<'a, T: 'a>(&'a self, f: fn(&str) -> T) -> impl Iterator<Item = T> + 'a {
+    pub fn map_lines<'a, T>(
+        &'a self,
+        f: impl FnMut(&'a str) -> T + 'a,
+    ) -> impl Iterator<Item = T> + 'a {
         self.lines().map(f)
     }
 
@@ -36,7 +39,10 @@ impl Input {
         self.raw.split(',').filter(|s| !s.is_empty()).map(str::trim)
     }
 
-    pub fn map_csv<'a, T: 'a>(&'a self, f: fn(&str) -> T) -> impl Iterator<Item = T> + 'a {
+    pub fn map_csv<'a, T: 'a>(
+        &'a self,
+        f: impl FnMut(&'a str) -> T + 'a,
+    ) -> impl Iterator<Item = T> + 'a {
         self.csv().map(f)
     }
 
