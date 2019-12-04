@@ -1,7 +1,7 @@
 use std::{io, str};
 
 pub struct Input {
-    raw: String,
+    pub raw: String,
 }
 
 impl Input {
