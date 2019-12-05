@@ -1,0 +1,11 @@
+<link rel="stylesheet" href="{{ site.baseurl }}/assets/css/calendar.css">
+
+{% assign post_count = site.posts | size %}
+
+<nav class="calendar">
+    {% for day in (1..25) %}
+        <a class="{%- if day > post_count -%} unavailable {%- elsif day == post_count -%} most-recent {%- endif -%}" href="{{ site.baseurl }}/day/{{ day }}">
+            {{ day }}
+        </a>
+    {% endfor %}
+</nav>

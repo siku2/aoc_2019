@@ -1,0 +1,38 @@
+---
+---
+
+@import "default_colors";
+
+.calendar {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 100%;
+
+  & > * {
+    align-items: center;
+    background-color: #666;
+    border: 3px dashed $cod-grey;
+    color: $gallery;
+    display: flex;
+    justify-content: center;
+    min-height: 50px;
+    text-align: center;
+    text-decoration: none;
+    width: calc(100% / 7);
+
+    &.most-recent {
+      background-color: $conifer;
+      color: $cod-grey;
+    }
+
+    &.unavailable {
+      background-color: rgba(#666, $alpha: 0.5);
+    }
+
+    &:hover {
+      background-color: $chelsea-cucumber;
+    }
+  }
+}
