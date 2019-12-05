@@ -9,7 +9,23 @@ layout: default
 
 <hr>
 
-<a href="https://adventofcode.com/2019/day/{{ page.date | date: "%-d" }}">Read the puzzle's description on adventofcode.com</a>
+{% assign puzzle_day = page.date | date: "%-d" %}
+{% assign puzzle_day0 = page.date | date: "%d" %}
+
+<span>Links:</span>
+<ul>
+  <li>
+    <a href="https://adventofcode.com/2019/day/{{ puzzle_day }}" target="_blank">
+      Puzzle on adventofcode.com
+    </a>
+  </li>
+
+  <li>
+    <a href="https://github.com/siku2/aoc_2019/blob/master/src/puzzles/day_{{ puzzle_day0 }}.rs" target="_blank">
+      Source Code
+    </a>
+  </li>
+</ul>
 
 <br>
 
