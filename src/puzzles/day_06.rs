@@ -32,21 +32,36 @@ fn build_orbit_map(orbits: OrbitList) -> OrbitMap {
     orbit_map
 }
 
-fn get_orbit_depth(orbits: &OrbitMap, value: Object) -> usize {
-    if let Some(v) = orbits.get(value) {
-        get_orbit_depth(orbits, v) + 1
+type DepthMap<'a> = HashMap<Object<'a>, usize>;
+
+fn set_depth<'a>(orbits: &OrbitMap<'a>, depths: &mut DepthMap<'a>, obj: Object<'a>) -> usize {
+    let depth;
+    if let Some(next) = orbits.get(obj) {
+        depth = set_depth(orbits, depths, next) + 1;
     } else {
-        1
+        depth = 0;
     }
+
+    depths.insert(obj, depth);
+
+    depth
+}
+
+fn build_depth_map<'a>(orbits: &OrbitMap<'a>) -> DepthMap<'a> {
+    let mut depths = HashMap::new();
+
+    for object in orbits.keys() {
+        set_depth(orbits, &mut depths, object);
+    }
+
+    depths
 }
 
 pub fn first(i: &Input) -> Result<String, Box<dyn Error>> {
     let orbits = build_orbit_map(orbits_from_input(i)?);
-    Ok(orbits
-        .keys()
-        .map(|k| get_orbit_depth(&orbits, k) - 1)
-        .sum::<usize>()
-        .to_string())
+    let depths = build_depth_map(&orbits);
+
+    Ok(depths.values().sum::<usize>().to_string())
 }
 
 fn get_path<'a>(orbits: &OrbitMap<'a>, start: Object<'a>) -> Vec<Object<'a>> {
