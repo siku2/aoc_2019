@@ -12,8 +12,8 @@
 
   & > * {
     align-items: center;
-    background-color: #666;
-    border: 3px dashed $cod-grey;
+    background-color: rgba($dove-grey, 25%);
+    border: 1px dashed $conifer;
     color: $gallery;
     display: flex;
     justify-content: center;
@@ -28,7 +28,7 @@
     }
 
     &.unavailable {
-      background-color: rgba(#666, $alpha: 0.5);
+      background-color: unset;
     }
 
     &:hover {
