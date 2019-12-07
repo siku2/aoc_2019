@@ -9,6 +9,7 @@ use clap::{App, Arg};
 use input::Input;
 
 mod input;
+mod lib;
 mod puzzles;
 
 fn get_app<'a, 'b>() -> App<'a, 'b> {
