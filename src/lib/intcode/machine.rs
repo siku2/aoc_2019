@@ -23,7 +23,6 @@ pub struct Machine {
     output: Vec<Code>,
     debug: bool,
     halted: bool,
-    pub needs_input: bool,
     pub wait_for_input: bool,
 }
 
@@ -36,7 +35,6 @@ impl Machine {
             output: Vec::new(),
             debug: false,
             halted: false,
-            needs_input: false,
             wait_for_input: false,
         }
     }
@@ -100,7 +98,6 @@ impl Machine {
             OP_INP => {
                 if self.input.is_empty() {
                     if self.wait_for_input {
-                        self.needs_input = true;
                         return Ok(false);
                     } else {
                         return Err("missing input".into());
@@ -184,7 +181,6 @@ impl Machine {
     fn reset(&mut self) {
         self.instr_ptr = 0;
         self.halted = false;
-        self.needs_input = false;
         self.input.clear();
         self.output.clear();
     }
@@ -209,13 +205,14 @@ impl Machine {
         self.output.last()
     }
 
-    pub fn start(&mut self, input: &[Code]) -> Result<(), Box<dyn Error>> {
+    pub fn start(&mut self, input: &[Code]) -> Result<(bool), Box<dyn Error>> {
         self.reset();
         self.wait_for_input = true;
+
         self.send(input)
     }
 
-    pub fn send(&mut self, input: &[Code]) -> Result<(), Box<dyn Error>> {
+    pub fn send(&mut self, input: &[Code]) -> Result<(bool), Box<dyn Error>> {
         if self.halted {
             return Err("cannot send input on halted machine".into());
         }
@@ -224,6 +221,6 @@ impl Machine {
 
         while self.run_once()? {}
 
-        Ok(())
+        Ok(self.halted)
     }
 }
