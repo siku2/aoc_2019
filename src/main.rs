@@ -1,6 +1,3 @@
-extern crate chrono;
-extern crate clap;
-
 use std::{error, fs, io};
 
 use chrono::{Datelike, TimeZone, Utc};
