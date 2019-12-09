@@ -25,7 +25,7 @@ pub struct Machine {
     output: Vec<Code>,
     pub debug: bool,
     halted: bool,
-    pub wait_for_input: bool,
+    wait_for_input: bool,
 }
 
 impl Machine {
@@ -46,11 +46,8 @@ impl Machine {
         Ok(Self::new(i.parse_csv().collect::<Result<_, _>>()?))
     }
 
-    fn get_address(&self, addr: Code) -> Option<Code> {
-        if addr >= self.code.len() as Code {
-            return Some(0);
-        }
-        self.code.get(addr as usize).copied()
+    fn get_address(&self, addr: Code) -> Code {
+        self.code.get(addr as usize).copied().unwrap_or_default()
     }
 
     fn set_address(&mut self, addr: Code, val: Code) {
@@ -91,7 +88,7 @@ impl Machine {
 
     fn get_raw_param(&self, param: usize) -> Result<Code, Box<dyn Error>> {
         let addr = (self.instr_ptr + (param + 1)) as Code;
-        let value = self.get_address(addr).ok_or_else(|| "invalid index")?;
+        let value = self.get_address(addr);
 
         if self.debug {
             println!("READ {} at [{}] = {}", param, addr, value);
@@ -104,21 +101,15 @@ impl Machine {
         let value = self.get_raw_param(param as usize)?;
 
         match get_mode(param_modes, param) {
-            0 => self
-                .get_address(value)
-                .ok_or_else(|| "invalid index value".into()),
+            0 => Ok(self.get_address(value)),
             1 => Ok(value),
-            2 => self
-                .get_address(self.relative_base + value)
-                .ok_or_else(|| "invalid index value".into()),
+            2 => Ok(self.get_address(self.relative_base + value)),
             _ => Err("invalid param mode".into()),
         }
     }
 
     pub fn run_once(&mut self) -> Result<bool, Box<dyn Error>> {
-        let instruction = self
-            .get_address(self.instr_ptr as Code)
-            .ok_or("no opcode")?;
+        let instruction = self.get_address(self.instr_ptr as Code);
         let (opcode, param_modes) = (instruction % 100, instruction / 100);
 
         if self.debug {
