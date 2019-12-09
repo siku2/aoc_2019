@@ -16,6 +16,10 @@ const OP_RBO: Code = 9;
 
 const OP_HALT: Code = 99;
 
+const MOD_POSITION: Code = 0;
+const MOD_IMMEDIATE: Code = 1;
+const MOD_RELATIVE: Code = 2;
+
 #[derive(Clone)]
 pub struct Machine {
     code: Vec<Code>,
@@ -36,7 +40,7 @@ impl Machine {
             relative_base: 0,
             input: VecDeque::new(),
             output: Vec::new(),
-            debug: false,
+            debug: true,
             halted: false,
             wait_for_input: false,
         }
@@ -46,11 +50,11 @@ impl Machine {
         Ok(Self::new(i.parse_csv().collect::<Result<_, _>>()?))
     }
 
-    fn get_address(&self, addr: Code) -> Code {
+    fn read(&self, addr: Code) -> Code {
         self.code.get(addr as usize).copied().unwrap_or_default()
     }
 
-    fn set_address(&mut self, addr: Code, val: Code) {
+    fn write(&mut self, addr: Code, val: Code) {
         if addr >= self.code.len() as Code {
             let new_len = (addr + 1) as usize;
             if self.debug {
@@ -62,59 +66,72 @@ impl Machine {
         self.code[addr as usize] = val;
     }
 
+    fn get_param(&self, param_modes: Code, param: u32) -> (Code, Code) {
+        (
+            (param_modes / 10isize.pow(param)) % 10,
+            (self.instr_ptr + 1 + param as usize) as Code,
+        )
+    }
+
+    fn resolve_address(&self, mode: Code, addr: Code) -> Result<Code, Box<dyn Error>> {
+        match mode {
+            MOD_POSITION => Ok(self.read(addr)),
+            MOD_IMMEDIATE => Ok(addr),
+            MOD_RELATIVE => Ok(self.read(addr) + self.relative_base),
+            _ => Err("invalid param mode".into()),
+        }
+    }
+
     fn write_to_param(
         &mut self,
         param_modes: Code,
         param: u32,
         val: Code,
     ) -> Result<(), Box<dyn Error>> {
-        let mut addr = self.get_raw_param(param as usize)?;
-        let mode = get_mode(param_modes, param);
-
-        match mode {
-            0 => (),
-            2 => addr += self.relative_base,
-            1 => return Err("cannot write to immediate mode param".into()),
-            _ => return Err("invalid param mode".into()),
+        let (mode, param_addr) = self.get_param(param_modes, param);
+        if mode == MOD_IMMEDIATE {
+            return Err("immediate param mode disallowed by spec".into());
         }
-
+        let addr = self.resolve_address(mode, param_addr)?;
         if self.debug {
-            println!("WRITE {} -> [{}] (mode: {})", val, addr, mode);
+            println!(
+                "WRITE to param {} at [{}]={}: {} -> [{}]",
+                param,
+                param_addr,
+                self.read(param_addr),
+                val,
+                addr
+            );
         }
 
-        self.set_address(addr, val);
+        self.write(addr, val);
         Ok(())
     }
 
-    fn get_raw_param(&self, param: usize) -> Result<Code, Box<dyn Error>> {
-        let addr = (self.instr_ptr + (param + 1)) as Code;
-        let value = self.get_address(addr);
-
+    fn read_from_param(&self, param_modes: Code, param: u32) -> Result<Code, Box<dyn Error>> {
+        let (mode, param_addr) = self.get_param(param_modes, param);
+        let addr = self.resolve_address(mode, param_addr)?;
+        let value = self.read(addr);
         if self.debug {
-            println!("READ {} at [{}] = {}", param, addr, value);
+            println!(
+                "READ from param {} at [{}]={}: [{}] = {}",
+                param,
+                param_addr,
+                self.read(param_addr),
+                addr,
+                value
+            );
         }
-
         Ok(value)
     }
 
-    fn get_param(&self, param_modes: Code, param: u32) -> Result<Code, Box<dyn Error>> {
-        let value = self.get_raw_param(param as usize)?;
-
-        match get_mode(param_modes, param) {
-            0 => Ok(self.get_address(value)),
-            1 => Ok(value),
-            2 => Ok(self.get_address(self.relative_base + value)),
-            _ => Err("invalid param mode".into()),
-        }
-    }
-
     pub fn run_once(&mut self) -> Result<bool, Box<dyn Error>> {
-        let instruction = self.get_address(self.instr_ptr as Code);
+        let instruction = self.read(self.instr_ptr as Code);
         let (opcode, param_modes) = (instruction % 100, instruction / 100);
 
         if self.debug {
             println!(
-                "\nSTEP: instr={} op={}, modes={}",
+                "\nSTEP: pos={} op={}, modes={}",
                 self.instr_ptr, opcode, param_modes
             );
         }
@@ -122,8 +139,8 @@ impl Machine {
         match opcode {
             OP_ADD => {
                 let (a, b) = (
-                    self.get_param(param_modes, 0)?,
-                    self.get_param(param_modes, 1)?,
+                    self.read_from_param(param_modes, 0)?,
+                    self.read_from_param(param_modes, 1)?,
                 );
                 let res = a + b;
                 if self.debug {
@@ -134,8 +151,8 @@ impl Machine {
             }
             OP_MUL => {
                 let (a, b) = (
-                    self.get_param(param_modes, 0)?,
-                    self.get_param(param_modes, 1)?,
+                    self.read_from_param(param_modes, 0)?,
+                    self.read_from_param(param_modes, 1)?,
                 );
                 let res = a * b;
                 if self.debug {
@@ -165,7 +182,7 @@ impl Machine {
                 self.instr_ptr += 2;
             }
             OP_OUT => {
-                let out = self.get_param(param_modes, 0)?;
+                let out = self.read_from_param(param_modes, 0)?;
                 if self.debug {
                     println!("OUT {}", out);
                 }
@@ -173,12 +190,12 @@ impl Machine {
                 self.instr_ptr += 2;
             }
             OP_JIT => {
-                let expr = self.get_param(param_modes, 0)?;
+                let expr = self.read_from_param(param_modes, 0)?;
                 if self.debug {
                     println!("JIT {}", expr);
                 }
                 if expr != 0 {
-                    let index = self.get_param(param_modes, 1)? as usize;
+                    let index = self.read_from_param(param_modes, 1)? as usize;
                     if self.debug {
                         println!("JUMP TO {} (from {})", index, self.instr_ptr);
                     }
@@ -188,12 +205,12 @@ impl Machine {
                 }
             }
             OP_JIF => {
-                let expr = self.get_param(param_modes, 0)?;
+                let expr = self.read_from_param(param_modes, 0)?;
                 if self.debug {
                     println!("JIF {}", expr);
                 }
                 if expr == 0 {
-                    let index = self.get_param(param_modes, 1)? as usize;
+                    let index = self.read_from_param(param_modes, 1)? as usize;
                     if self.debug {
                         println!("JUMP TO {} (from {})", index, self.instr_ptr);
                     }
@@ -204,8 +221,8 @@ impl Machine {
             }
             OP_LT => {
                 let (a, b) = (
-                    self.get_param(param_modes, 0)?,
-                    self.get_param(param_modes, 1)?,
+                    self.read_from_param(param_modes, 0)?,
+                    self.read_from_param(param_modes, 1)?,
                 );
                 let lt = a < b;
                 if self.debug {
@@ -216,8 +233,8 @@ impl Machine {
             }
             OP_EQ => {
                 let (a, b) = (
-                    self.get_param(param_modes, 0)?,
-                    self.get_param(param_modes, 1)?,
+                    self.read_from_param(param_modes, 0)?,
+                    self.read_from_param(param_modes, 1)?,
                 );
                 let eq = a == b;
                 if self.debug {
@@ -227,7 +244,7 @@ impl Machine {
                 self.instr_ptr += 4;
             }
             OP_RBO => {
-                let rel = self.get_param(param_modes, 0)?;
+                let rel = self.read_from_param(param_modes, 0)?;
                 self.relative_base += rel;
                 if self.debug {
                     println!("RBO {:+} = {}", rel, self.relative_base);
@@ -275,15 +292,17 @@ impl Machine {
         self.output.last()
     }
 
-    pub fn start(&mut self, input: &[Code]) -> Result<(bool), Box<dyn Error>> {
+    pub fn start(&mut self, input: &[Code]) -> Result<bool, Box<dyn Error>> {
         self.reset();
         self.wait_for_input = true;
 
         self.send(input)
     }
 
-    pub fn send(&mut self, input: &[Code]) -> Result<(bool), Box<dyn Error>> {
-        if self.halted {
+    pub fn send(&mut self, input: &[Code]) -> Result<bool, Box<dyn Error>> {
+        if !self.wait_for_input {
+            return Err("start wasn't called".into());
+        } else if self.halted {
             return Err("cannot send input on halted machine".into());
         }
 
@@ -293,8 +312,4 @@ impl Machine {
 
         Ok(self.halted)
     }
-}
-
-fn get_mode(param_modes: Code, param: u32) -> Code {
-    (param_modes / 10isize.pow(param)) % 10
 }
