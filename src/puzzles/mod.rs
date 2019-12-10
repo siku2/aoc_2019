@@ -11,6 +11,7 @@ pub mod day_06;
 pub mod day_07;
 pub mod day_08;
 pub mod day_09;
+pub mod day_10;
 
 pub fn run_puzzle(day: u8, second: bool, input: &Input) -> Option<Result<String, Box<dyn Error>>> {
     match day {
@@ -58,6 +59,11 @@ pub fn run_puzzle(day: u8, second: bool, input: &Input) -> Option<Result<String,
             day_09::second(input)
         } else {
             day_09::first(input)
+        }),
+        10 => Some(if second {
+            day_10::second(input)
+        } else {
+            day_10::first(input)
         }),
         _ => None,
     }

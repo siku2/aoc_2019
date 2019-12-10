@@ -19,7 +19,7 @@ impl Input {
     }
 
     pub fn lines<'a>(&'a self) -> impl Iterator<Item = &str> + 'a {
-        self.raw.lines().filter(|s| !s.is_empty())
+        self.raw.trim().lines().filter(|s| !s.is_empty())
     }
 
     pub fn map_lines<'a, T>(
