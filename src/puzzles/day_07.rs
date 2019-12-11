@@ -73,14 +73,16 @@ fn run_machines_loop(
 ) -> Result<Code, Box<dyn Error>> {
     let mut input: Code = 0;
     for (m, &phase) in machines.iter_mut().zip(phases.iter()) {
-        m.start(&[phase, input])?;
-        input = *m.last_output().unwrap();
+        m.start();
+        m.send(phase)?;
+        m.send(input)?;
+        input = *m.take_output().last().unwrap();
     }
 
     loop {
         for m in machines.iter_mut() {
-            m.send(&[input])?;
-            input = *m.last_output().unwrap();
+            m.send(input)?;
+            input = *m.take_output().last().unwrap();
         }
 
         if machines.last().unwrap().is_done() {

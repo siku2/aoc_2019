@@ -40,7 +40,7 @@ impl Machine {
             relative_base: 0,
             input: VecDeque::new(),
             output: Vec::new(),
-            debug: true,
+            debug: false,
             halted: false,
             wait_for_input: false,
         }
@@ -281,32 +281,33 @@ impl Machine {
 
         while self.run_once()? {}
 
-        Ok(self.output.clone())
+        Ok(self.take_output())
     }
 
     pub fn is_done(&self) -> bool {
         self.halted
     }
 
-    pub fn last_output(&self) -> Option<&Code> {
-        self.output.last()
+    pub fn take_output(&mut self) -> Vec<Code> {
+        let out = self.output.clone();
+        self.output.clear();
+
+        out
     }
 
-    pub fn start(&mut self, input: &[Code]) -> Result<bool, Box<dyn Error>> {
+    pub fn start(&mut self) {
         self.reset();
         self.wait_for_input = true;
-
-        self.send(input)
     }
 
-    pub fn send(&mut self, input: &[Code]) -> Result<bool, Box<dyn Error>> {
+    pub fn send(&mut self, input: Code) -> Result<bool, Box<dyn Error>> {
         if !self.wait_for_input {
             return Err("start wasn't called".into());
         } else if self.halted {
             return Err("cannot send input on halted machine".into());
         }
 
-        input.iter().for_each(|&i| self.input.push_back(i));
+        self.input.push_back(input);
 
         while self.run_once()? {}
 
