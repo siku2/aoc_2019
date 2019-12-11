@@ -22,6 +22,10 @@
     text-decoration: none;
     width: calc(100% / 7);
 
+    &:nth-child(2n) {
+      background-color: rgba($dove-grey, 50%);
+    }
+
     &.most-recent {
       background-color: $conifer;
       color: $cod-grey;
