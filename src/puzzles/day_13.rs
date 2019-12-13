@@ -1,7 +1,7 @@
 use crate::input::Input;
 use crate::lib::intcode::Machine;
 use colored::Colorize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io;
 
@@ -29,34 +29,37 @@ fn render_tile(w: &mut impl io::Write, tile: TileID) -> io::Result<()> {
 
 type Map = HashMap<Position, TileID>;
 
-fn render_map(w: &mut impl io::Write, map: &Map, size: Position) -> io::Result<()> {
-    for y in 0..size.1 {
+fn print_map(map: &Map, size: Position, dirty_lines: &mut HashSet<isize>) {
+    let stdout = io::stdout();
+    let mut w = stdout.lock();
+
+    for &y in dirty_lines.iter() {
+        print!("\x1B[{};0H", y + 1);
+
         for x in 0..size.0 {
             let tile = map.get(&(x, y)).copied().unwrap_or(EMPTY);
-            render_tile(w, tile)?;
+            render_tile(&mut w, tile).unwrap();
         }
-
-        writeln!(w)?;
     }
-
-    Ok(())
-}
-
-fn print_map(map: &Map, size: Position) {
-    let stdout = io::stdout();
-    let mut out_lock = stdout.lock();
-    render_map(&mut out_lock, map, size).unwrap();
+    dirty_lines.clear();
 }
 
 type GameState = (Map, Position, isize);
 
 fn run_game(m: &mut Machine, render: bool) -> Result<GameState, Box<dyn Error>> {
+    if render {
+        // clear screen and disable cursor
+        print!("\x1B[2J\x1B[?25l");
+    }
+
     let mut map = Map::new();
     let mut max_pos: Position = (0, 0);
     let mut score = 0;
 
     let mut ball_x: isize = 0;
     let mut paddle_x: isize = 0;
+
+    let mut dirty_lines = HashSet::new();
 
     'outer: loop {
         while m.output.len() < 3 {
@@ -68,8 +71,8 @@ fn run_game(m: &mut Machine, render: bool) -> Result<GameState, Box<dyn Error>> 
                 m.input.push_back(input);
 
                 if render {
-                    print_map(&map, (max_pos.0 + 1, max_pos.1 + 1));
-                    std::thread::sleep(std::time::Duration::from_millis(250));
+                    print_map(&map, (max_pos.0 + 1, max_pos.1 + 1), &mut dirty_lines);
+                    std::thread::sleep(std::time::Duration::from_millis(25));
                 }
             }
         }
@@ -96,6 +99,9 @@ fn run_game(m: &mut Machine, render: bool) -> Result<GameState, Box<dyn Error>> 
         }
 
         map.insert((x, y), tile);
+        if render {
+            dirty_lines.insert(y);
+        }
     }
 
     Ok((map, (max_pos.0 + 1, max_pos.1 + 1), score))
