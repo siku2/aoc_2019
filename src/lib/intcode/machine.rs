@@ -25,8 +25,8 @@ pub struct Machine {
     code: Vec<Code>,
     instr_ptr: usize,
     relative_base: Code,
-    input: VecDeque<Code>,
-    output: Vec<Code>,
+    pub input: VecDeque<Code>,
+    pub output: Vec<Code>,
     pub debug: bool,
     halted: bool,
     wait_for_input: bool,
@@ -54,7 +54,7 @@ impl Machine {
         self.code.get(addr as usize).copied().unwrap_or_default()
     }
 
-    fn write(&mut self, addr: Code, val: Code) {
+    pub fn write(&mut self, addr: Code, val: Code) {
         if addr >= self.code.len() as Code {
             let new_len = (addr + 1) as usize;
             if self.debug {
