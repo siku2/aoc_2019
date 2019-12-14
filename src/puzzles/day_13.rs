@@ -131,13 +131,3 @@ pub fn second(i: &Input) -> Result<String, Box<dyn Error>> {
 
     Ok(score.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_first() -> Result<(), Box<dyn Error>> {
-        Ok(())
-    }
-}

@@ -111,8 +111,7 @@ fn parse_input(i: &Input) -> (AsteroidMap, Coords) {
         .lines()
         .enumerate()
         .flat_map(|(y, l)| {
-            l.trim()
-                .chars()
+            l.chars()
                 .enumerate()
                 .filter_map(move |(x, c)| if c == '#' { Some((x, y)) } else { None })
         })

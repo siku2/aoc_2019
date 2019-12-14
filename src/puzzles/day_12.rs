@@ -130,7 +130,7 @@ impl fmt::Display for Moon {
 }
 
 fn parse_input(i: &Input) -> Result<Vec<Moon>, Box<dyn Error>> {
-    i.map_lines(|l| Vec3::from_string(l.trim()).map(Moon::new))
+    i.map_lines(|l| Vec3::from_string(l).map(Moon::new))
         .collect()
 }
 
