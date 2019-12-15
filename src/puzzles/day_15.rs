@@ -1,6 +1,5 @@
 use crate::input::Input;
 use crate::lib::intcode::{Code, Machine};
-use pathfinding::prelude::dijkstra_all;
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 
@@ -107,42 +106,42 @@ fn find_oxygen(map: &Map) -> Option<Position> {
     map.iter().find(|(_, &v)| v == 2).map(|(&k, _)| k)
 }
 
-fn all_paths(map: &Map, start: Position) -> HashMap<Position, (Position, usize)> {
-    dijkstra_all(&start, |&p| {
-        surrounding_positions(p)
+fn all_distances(map: &Map, start: Position) -> HashMap<Position, usize> {
+    let mut distances = HashMap::new();
+    let mut queue = VecDeque::new();
+    queue.push_back((start, 0));
+
+    while let Some((pos, dist)) = queue.pop_front() {
+        distances.insert(pos, dist);
+        surrounding_positions(pos)
             .filter(|p| map.get(p).map(|&v| v != 1).unwrap_or(false))
-            .map(|p| (p, 1))
-            .collect::<Vec<_>>()
-    })
+            .filter(|p| !distances.contains_key(p))
+            .for_each(|p| queue.push_back((p, dist + 1)));
+    }
+
+    distances
 }
 
-fn steps_to_oxygen(m: Machine) -> Result<usize, Box<dyn Error>> {
+fn build_distances(m: Machine) -> Result<HashMap<Position, usize>, Box<dyn Error>> {
     let map = build_map(m)?;
-    let end_pos = find_oxygen(&map).ok_or_else(|| "location not found")?;
-
-    let paths = all_paths(&map, end_pos);
-    paths
-        .get(&(0, 0))
-        .map(|(_, c)| *c)
-        .ok_or_else(|| "no path found".into())
-}
-
-fn minutes_to_fill(m: Machine) -> Result<usize, Box<dyn Error>> {
-    let map = build_map(m)?;
-    let end_pos = find_oxygen(&map).ok_or_else(|| "location not found")?;
-
-    let paths = all_paths(&map, end_pos);
-    Ok(paths.values().map(|(_, c)| *c).max().unwrap())
+    find_oxygen(&map)
+        .ok_or_else(|| "location not found".into())
+        .map(|end_pos| all_distances(&map, end_pos))
 }
 
 pub fn first(i: &Input) -> Result<String, Box<dyn Error>> {
     let m = Machine::from_input(i)?;
-    steps_to_oxygen(m).map(|v| v.to_string())
+    let distances = build_distances(m)?;
+    distances
+        .get(&(0, 0))
+        .ok_or_else(|| "no path found".into())
+        .map(|v| v.to_string())
 }
 
 pub fn second(i: &Input) -> Result<String, Box<dyn Error>> {
     let m = Machine::from_input(i)?;
-    minutes_to_fill(m).map(|v| v.to_string())
+    let distances = build_distances(m)?;
+    Ok(distances.values().max().unwrap().to_string())
 }
 
 #[cfg(test)]
