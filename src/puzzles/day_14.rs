@@ -134,10 +134,7 @@ impl Reactions {
     }
 
     fn reaction_for_chemical(&self, name: &str) -> Option<&Reaction> {
-        self.reactions
-            .iter()
-            .filter(|r| r.output.name == name)
-            .next()
+        self.reactions.iter().find(|r| r.output.name == name)
     }
 
     fn ore_required_for(
