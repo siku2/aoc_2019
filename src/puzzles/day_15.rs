@@ -15,10 +15,10 @@ fn surrounding_positions(pos: Position) -> impl Iterator<Item = Position> {
 }
 
 type Direction = u8;
-const NORTH: Direction = 1;
-const SOUTH: Direction = NORTH + 1;
-const WEST: Direction = SOUTH + 1;
-const EAST: Direction = WEST + 1;
+
+fn iter_dirs() -> impl Iterator<Item = Direction> {
+    (1..=4)
+}
 
 fn dir_as_pos(dir: Direction) -> Position {
     let i = if dir == 0 {
@@ -30,20 +30,19 @@ fn dir_as_pos(dir: Direction) -> Position {
     CARDINALS[i]
 }
 
-type Output = u8;
-const HIT_WALL: Output = 0;
-const MOVED: Output = 1;
-const FOUND_LOCATION: Output = 2;
+type PosType = u8;
+const WALL: PosType = 0;
+const OXYGEN: PosType = 2;
 
-fn try_move(m: &mut Machine, dir: Direction) -> Result<Output, Box<dyn Error>> {
+fn try_move(m: &mut Machine, dir: Direction) -> Result<PosType, Box<dyn Error>> {
     m.send(dir as Code)?;
     m.take_output()
         .last()
         .ok_or_else(|| "got no response".into())
-        .map(|&o| o as Output)
+        .map(|&o| o as PosType)
 }
 
-type Map = HashMap<Position, u8>;
+type Map = HashMap<Position, PosType>;
 
 fn try_dir(
     m: &mut Machine,
@@ -57,21 +56,10 @@ fn try_dir(
         return Ok((false, next_pos));
     }
 
-    match try_move(m, dir)? {
-        HIT_WALL => {
-            map.insert(next_pos, 1);
-            return Ok((false, next_pos));
-        }
-        MOVED => {
-            map.insert(next_pos, 0);
-        }
-        FOUND_LOCATION => {
-            map.insert(next_pos, 2);
-        }
-        _ => return Err("received invalid output".into()),
-    }
+    let pos_type = try_move(m, dir)?;
+    map.insert(next_pos, pos_type);
 
-    Ok((true, next_pos))
+    Ok((pos_type != WALL, next_pos))
 }
 
 fn flood_fill(mut m: Machine, map: &mut Map, pos: Position) -> Result<(), Box<dyn Error>> {
@@ -83,7 +71,7 @@ fn flood_fill(mut m: Machine, map: &mut Map, pos: Position) -> Result<(), Box<dy
     while let Some((m, pos)) = queue.pop_front() {
         let mut mc = m.clone();
 
-        for dir in NORTH..=EAST {
+        for dir in iter_dirs() {
             let (ok, next_pos) = try_dir(&mut mc, map, pos, dir)?;
             if ok {
                 queue.push_back((mc, next_pos));
@@ -103,7 +91,7 @@ fn build_map(m: Machine) -> Result<Map, Box<dyn Error>> {
 }
 
 fn find_oxygen(map: &Map) -> Option<Position> {
-    map.iter().find(|(_, &v)| v == 2).map(|(&k, _)| k)
+    map.iter().find(|(_, &v)| v == OXYGEN).map(|(&k, _)| k)
 }
 
 fn all_distances(map: &Map, start: Position) -> HashMap<Position, usize> {
@@ -114,7 +102,7 @@ fn all_distances(map: &Map, start: Position) -> HashMap<Position, usize> {
     while let Some((pos, dist)) = queue.pop_front() {
         distances.insert(pos, dist);
         surrounding_positions(pos)
-            .filter(|p| map.get(p).map(|&v| v != 1).unwrap_or(false))
+            .filter(|p| map.get(p).map(|&v| v != WALL).unwrap_or(false))
             .filter(|p| !distances.contains_key(p))
             .for_each(|p| queue.push_back((p, dist + 1)));
     }
@@ -150,9 +138,9 @@ mod tests {
 
     #[test]
     fn test_dir_as_pos() {
-        assert_eq!(dir_as_pos(NORTH), (0, 1));
-        assert_eq!(dir_as_pos(SOUTH), (0, -1));
-        assert_eq!(dir_as_pos(EAST), (1, 0));
-        assert_eq!(dir_as_pos(WEST), (-1, 0));
+        assert_eq!(dir_as_pos(1), (0, 1));
+        assert_eq!(dir_as_pos(2), (0, -1));
+        assert_eq!(dir_as_pos(3), (1, 0));
+        assert_eq!(dir_as_pos(4), (-1, 0));
     }
 }
