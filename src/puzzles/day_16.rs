@@ -57,13 +57,7 @@ pub fn first(i: &Input) -> Result<String, Box<dyn Error>> {
 }
 
 fn get_offset(signal: impl Iterator<Item = isize>) -> usize {
-    const DIGITS: u32 = 7;
-    const MUL: isize = 1_000_000;
-
-    signal
-        .take(DIGITS as usize)
-        .fold((MUL, 0), |(m, n), d| (m / 10, n + m * d))
-        .1 as usize
+    signal.take(7).fold(0, |n, d| 10 * n + d) as usize
 }
 
 fn run_phase_offset(signal: &mut [isize]) {
