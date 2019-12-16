@@ -1,23 +1,25 @@
 use crate::input::Input;
+use std::cmp;
 use std::error::Error;
 use std::fmt::Write;
 use std::iter;
 
-type NumberList = Vec<isize>;
+type Digit = u8;
+type DigitList = Vec<Digit>;
 
-fn signal_from_input(i: &Input) -> Result<NumberList, Box<dyn Error>> {
+fn signal_from_input(i: &Input) -> Result<DigitList, Box<dyn Error>> {
     i.raw
         .trim()
         .chars()
         .map(|c| {
             c.to_digit(10)
-                .map(|v| v as isize)
+                .map(|v| v as Digit)
                 .ok_or_else(|| "couldn't parse digit".into())
         })
         .collect::<Result<_, _>>()
 }
 
-fn signal_to_string(signal: &[isize]) -> String {
+fn signal_to_string(signal: &[Digit]) -> String {
     let mut s = String::with_capacity(signal.len());
     signal
         .iter()
@@ -26,24 +28,54 @@ fn signal_to_string(signal: &[isize]) -> String {
     s
 }
 
-const BASE_PATTERN: [isize; 4] = [0, 1, 0, -1];
+#[derive(Debug, Eq, PartialEq)]
+struct PatternRange {
+    m: isize,
+    start: usize,
+    end: usize,
+}
 
-fn get_pattern(n: usize) -> impl Iterator<Item = isize> {
-    BASE_PATTERN
+fn get_pattern(n: usize) -> impl Iterator<Item = PatternRange> {
+    let mut pos = 0;
+    let mut m = 1;
+
+    iter::from_fn(move || {
+        let range = PatternRange {
+            m: m,
+            start: pos + n - 1,
+            end: pos + 2 * n - 1,
+        };
+
+        pos += 2 * n;
+        m *= -1;
+
+        Some(range)
+    })
+}
+
+fn run_phase(signal: &mut DigitList) {
+    let partial_sum = signal
         .iter()
-        .flat_map(move |&v| iter::repeat(v).take(n))
-        .cycle()
-        .skip(1)
-}
+        .chain(Some(&0u8))
+        .scan(0, |acc, x| {
+            let res = Some(*acc);
+            *acc += *x as isize;
+            res
+        })
+        .collect::<Vec<_>>();
 
-fn calc_element(signal: impl Iterator<Item = isize>, i: usize) -> isize {
-    let sum: isize = signal.zip(get_pattern(i + 1)).map(|(v, p)| v * p).sum();
-    (sum % 10).abs()
-}
-
-fn run_phase(signal: &mut NumberList) {
     for i in 0..signal.len() {
-        signal[i] = calc_element(signal.iter().copied(), i);
+        let sum: isize = get_pattern(i + 1)
+            .take_while(|r| r.start < signal.len())
+            .map(|r| {
+                let end = partial_sum[cmp::min(r.end, partial_sum.len() - 1)];
+                let sum = end - partial_sum[r.start];
+
+                sum * r.m
+            })
+            .sum();
+
+        signal[i] = (sum % 10).abs() as Digit;
     }
 }
 
@@ -56,15 +88,15 @@ pub fn first(i: &Input) -> Result<String, Box<dyn Error>> {
     Ok(signal_to_string(&signal[..8]))
 }
 
-fn get_offset(signal: impl Iterator<Item = isize>) -> usize {
-    signal.take(7).fold(0, |n, d| 10 * n + d) as usize
+fn get_offset(signal: impl Iterator<Item = Digit>) -> usize {
+    signal.take(7).fold(0, |n, d| 10 * n + d as usize)
 }
 
-fn run_phase_offset(signal: &mut [isize]) {
-    let mut partial_sum: isize = signal.iter().sum();
+fn run_phase_offset(signal: &mut [Digit]) {
+    let mut partial_sum: isize = signal.iter().map(|v| *v as isize).sum();
     for v in signal.iter_mut() {
-        let d = (partial_sum % 10).abs();
-        partial_sum -= *v;
+        let d = (partial_sum % 10).abs() as Digit;
+        partial_sum -= *v as isize;
         *v = d;
     }
 }
@@ -83,7 +115,7 @@ pub fn second(i: &Input) -> Result<String, Box<dyn Error>> {
         return Err("expected bigger offset!".into());
     }
     let offset_start = offset % once_signal.len();
-    let mut signal: NumberList = once_signal
+    let mut signal: DigitList = once_signal
         .iter()
         .copied()
         .cycle()
@@ -105,16 +137,34 @@ mod tests {
     #[test]
     fn test_get_pattern() {
         assert_eq!(
-            get_pattern(1).take(8).collect::<Vec<_>>(),
-            vec![1, 0, -1, 0, 1, 0, -1, 0]
+            get_pattern(1).take(2).collect::<Vec<_>>(),
+            vec![
+                PatternRange {
+                    m: 1,
+                    start: 0,
+                    end: 1
+                },
+                PatternRange {
+                    m: -1,
+                    start: 2,
+                    end: 3
+                }
+            ]
         );
         assert_eq!(
-            get_pattern(2).take(15).collect::<Vec<_>>(),
-            vec![0, 1, 1, 0, 0, -1, -1, 0, 0, 1, 1, 0, 0, -1, -1]
-        );
-        assert_eq!(
-            get_pattern(3).take(8).collect::<Vec<_>>(),
-            vec![0, 0, 1, 1, 1, 0, 0, 0]
+            get_pattern(2).take(2).collect::<Vec<_>>(),
+            vec![
+                PatternRange {
+                    m: 1,
+                    start: 1,
+                    end: 3
+                },
+                PatternRange {
+                    m: -1,
+                    start: 5,
+                    end: 7
+                }
+            ]
         );
     }
 
