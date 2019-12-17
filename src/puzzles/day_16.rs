@@ -41,7 +41,7 @@ fn get_pattern(n: usize) -> impl Iterator<Item = PatternRange> {
 
     iter::from_fn(move || {
         let range = PatternRange {
-            m: m,
+            m,
             start: pos + n - 1,
             end: pos + 2 * n - 1,
         };
