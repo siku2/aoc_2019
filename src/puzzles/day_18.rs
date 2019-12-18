@@ -113,7 +113,7 @@ impl Vault {
             return keys.contains(door_id);
         }
 
-        return true;
+        true
     }
 
     fn bfs_keys(
@@ -176,6 +176,10 @@ impl Vault {
                     min_dist = dist;
                 }
             }
+        }
+
+        if min_dist == std::usize::MAX {
+            panic!("impossible to collect missing keys");
         }
 
         cache.insert(state, min_dist);
