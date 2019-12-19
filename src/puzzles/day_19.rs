@@ -71,7 +71,7 @@ fn find_area(m: &Machine, width: usize) -> Result<(usize, usize), Box<dyn Error>
     loop {
         let (end_y_start, end_y_end) = bounds_at(start_x + width_i, &mut right_bounds)?;
         if end_y_end - end_y_start < width {
-            start_x += 1;
+            start_x += width;
             continue;
         }
         let (_, start_y_end) = bounds_at(start_x, &mut left_bounds)?;
