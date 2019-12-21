@@ -264,6 +264,12 @@ impl Machine {
         Ok(true)
     }
 
+    pub fn run_until_stop(&mut self) -> Result<bool, Box<dyn Error>> {
+        while self.run_once()? {}
+
+        Ok(self.halted)
+    }
+
     fn reset(&mut self) {
         self.instr_ptr = 0;
         self.relative_base = 0;
@@ -278,8 +284,7 @@ impl Machine {
         if self.wait_for_input {
             return Err("cannot wait for input when using run".into());
         }
-
-        while self.run_once()? {}
+        self.run_until_stop()?;
 
         Ok(self.take_output())
     }
@@ -309,8 +314,16 @@ impl Machine {
 
         self.input.push_back(input);
 
-        while self.run_once()? {}
+        self.run_until_stop()
+    }
 
-        Ok(self.halted)
+    pub fn send_ascii(&mut self, input: &str) -> Result<bool, Box<dyn Error>> {
+        for inp in input.chars().map(|c| c as Code) {
+            if self.send(inp)? {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 }
