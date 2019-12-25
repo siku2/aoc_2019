@@ -120,7 +120,7 @@ fn main() {
         }
     }
 
-    if day == 0 || day >= 25 {
+    if day == 0 || day > 25 {
         println!("day must be between 1 and 25 (both inclusive)");
         return;
     }

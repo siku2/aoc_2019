@@ -300,6 +300,18 @@ impl Machine {
         out
     }
 
+    pub fn take_ascii_output(&mut self) -> Option<String> {
+        let mut s = String::with_capacity(self.output.len());
+        for c in self.output.drain(..) {
+            if c >= 0 && c <= std::u8::MAX as Code {
+                s.push(c as u8 as char);
+            } else {
+                return None;
+            }
+        }
+        Some(s)
+    }
+
     pub fn start(&mut self) {
         self.reset();
         self.wait_for_input = true;
