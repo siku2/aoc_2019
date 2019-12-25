@@ -209,7 +209,3 @@ pub fn first(i: &Input) -> Result<String, Error> {
     let mut droid = Droid::from_input(i)?;
     droid.run().map(|v| v.to_string())
 }
-
-pub fn second(i: &Input) -> Result<String, Error> {
-    unimplemented!()
-}
